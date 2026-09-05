@@ -50,9 +50,12 @@ function App() {
   };
 
   const copyCPF = () => {
-    navigator.clipboard.writeText(generatedCPF);
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2000);
+    navigator.clipboard.writeText(generatedCPF).then(() => {
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    }).catch(() => {
+      alert('Não foi possível copiar automaticamente. Selecione e copie o CPF manualmente.');
+    });
   };
 
   const updateDigit = (index: number, value: string) => {
