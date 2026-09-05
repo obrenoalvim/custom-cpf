@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Check, X, Copy, Shuffle } from 'lucide-react';
 
 interface CPFDigits {
@@ -11,10 +11,9 @@ function App() {
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [validationCPF, setValidationCPF] = useState<string>('');
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
+  const digitInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
-  // Função para calcular os dígitos verificadores
   const calculateCheckDigits = (digits: string[]): [number, number] => {
-    // Primeiro dígito verificador
     let sum1 = 0;
     for (let i = 0; i < 9; i++) {
       sum1 += parseInt(digits[i]) * (10 - i);
@@ -22,7 +21,6 @@ function App() {
     const remainder1 = sum1 % 11;
     const digit1 = remainder1 < 2 ? 0 : 11 - remainder1;
 
-    // Segundo dígito verificador
     let sum2 = 0;
     for (let i = 0; i < 9; i++) {
       sum2 += parseInt(digits[i]) * (11 - i);
@@ -34,97 +32,86 @@ function App() {
     return [digit1, digit2];
   };
 
-  // Função para validar CPF
+  const isRepeatedDigits = (digits: string[]): boolean => digits.every(d => d === digits[0]);
+
   const validateCPF = (cpf: string): boolean => {
     const cleanCPF = cpf.replace(/\D/g, '');
-    
+
     if (cleanCPF.length !== 11) return false;
-    if (/^(\d)\1{10}$/.test(cleanCPF)) return false; // CPF com todos os dígitos iguais
+    if (/^(\d)\1{10}$/.test(cleanCPF)) return false;
 
     const digits = cleanCPF.split('');
     const [expectedDigit1, expectedDigit2] = calculateCheckDigits(digits);
-    
+
     return parseInt(digits[9]) === expectedDigit1 && parseInt(digits[10]) === expectedDigit2;
   };
 
-  // Função para gerar CPF baseado nos dígitos preenchidos
   const generateCPF = () => {
-    const digits = Array(11).fill('');
-    
-    // Preencher com os dígitos já inseridos
-    Object.keys(cpfDigits).forEach(index => {
-      if (cpfDigits[parseInt(index)] !== '') {
-        digits[parseInt(index)] = cpfDigits[parseInt(index)];
-      }
-    });
+    const digits = Array(9).fill('');
 
-    // Preencher posições vazias (exceto os dois últimos dígitos verificadores)
     for (let i = 0; i < 9; i++) {
-      if (digits[i] === '') {
-        digits[i] = Math.floor(Math.random() * 10).toString();
-      }
+      digits[i] = cpfDigits[i] || Math.floor(Math.random() * 10).toString();
     }
 
-    // Calcular os dígitos verificadores
     const [digit1, digit2] = calculateCheckDigits(digits);
-    
-    // Se os dígitos verificadores já estão preenchidos, verificar se são válidos
-    if (digits[9] !== '' || digits[10] !== '') {
-      if (digits[9] !== '' && digits[9] !== digit1.toString()) {
-        alert('O 10º dígito informado não é válido para este CPF!');
-        return;
-      }
-      if (digits[10] !== '' && digits[10] !== digit2.toString()) {
-        alert('O 11º dígito informado não é válido para este CPF!');
-        return;
-      }
+    const fullDigits = [...digits, digit1.toString(), digit2.toString()];
+
+    if (isRepeatedDigits(fullDigits)) {
+      alert('Essa combinação de dígitos gera um CPF com todos os números iguais, que não é válido. Mude pelo menos um dígito fixado.');
+      return;
     }
 
-    digits[9] = digit1.toString();
-    digits[10] = digit2.toString();
-
-    const cpf = digits.join('');
-    setGeneratedCPF(formatCPF(cpf));
+    setGeneratedCPF(formatCPF(fullDigits.join('')));
   };
 
-  // Função para gerar CPF completamente aleatório
   const generateRandomCPF = () => {
     setCpfDigits({});
-    const digits = Array(9).fill('').map(() => Math.floor(Math.random() * 10).toString());
-    const [digit1, digit2] = calculateCheckDigits(digits);
-    digits.push(digit1.toString(), digit2.toString());
+    let digits: string[];
+    do {
+      const base = Array(9).fill('').map(() => Math.floor(Math.random() * 10).toString());
+      const [digit1, digit2] = calculateCheckDigits(base);
+      digits = [...base, digit1.toString(), digit2.toString()];
+    } while (isRepeatedDigits(digits));
     setGeneratedCPF(formatCPF(digits.join('')));
   };
 
-  // Função para formatar CPF
   const formatCPF = (cpf: string): string => {
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   };
 
-  // Função para limpar todos os campos
   const clearAll = () => {
     setCpfDigits({});
     setGeneratedCPF('');
   };
 
-  // Função para copiar CPF
   const copyCPF = () => {
     navigator.clipboard.writeText(generatedCPF);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
-  // Atualizar dígito específico
   const updateDigit = (index: number, value: string) => {
     if (value === '' || /^\d$/.test(value)) {
       setCpfDigits(prev => ({
         ...prev,
         [index]: value
       }));
+      if (value !== '' && index < 8) {
+        digitInputRefs.current[index + 1]?.focus();
+      }
     }
   };
 
-  // Validar CPF em tempo real
+  const handleDigitKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !cpfDigits[index] && index > 0) {
+      digitInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const baseDigits = Array.from({ length: 9 }, (_, i) => cpfDigits[i] || '');
+  const baseComplete = baseDigits.every(d => d !== '');
+  const checkDigitsPreview = baseComplete ? calculateCheckDigits(baseDigits) : null;
+
   useEffect(() => {
     const cleanCPF = validationCPF.replace(/\D/g, '');
     if (cleanCPF.length === 11) {
@@ -147,7 +134,6 @@ function App() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Gerador de CPF */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
               <Shuffle className="mr-2 text-blue-600" />
@@ -162,11 +148,23 @@ function App() {
                 {Array.from({ length: 11 }, (_, i) => (
                   <div key={i} className="text-center">
                     <input
+                      ref={(el) => { digitInputRefs.current[i] = el; }}
                       type="text"
+                      inputMode="numeric"
                       maxLength={1}
-                      value={cpfDigits[i] || ''}
+                      readOnly={i >= 9}
+                      tabIndex={i >= 9 ? -1 : undefined}
+                      value={
+                        i >= 9
+                          ? (checkDigitsPreview ? checkDigitsPreview[i - 9].toString() : '')
+                          : (cpfDigits[i] || '')
+                      }
                       onChange={(e) => updateDigit(i, e.target.value)}
-                      className="w-full h-12 text-center text-lg font-mono border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                      onKeyDown={(e) => handleDigitKeyDown(i, e)}
+                      aria-label={i >= 9 ? `Dígito verificador ${i + 1} do CPF, calculado automaticamente` : `Dígito ${i + 1} do CPF`}
+                      className={`w-full h-12 text-center text-lg font-mono border-2 rounded-lg focus:border-blue-500 focus:outline-none transition-colors ${
+                        i >= 9 ? 'bg-gray-100 border-gray-200 text-gray-500' : 'border-gray-300'
+                      }`}
                       placeholder="•"
                     />
                     <div className="text-xs text-gray-500 mt-1">
@@ -176,7 +174,7 @@ function App() {
                 ))}
               </div>
               <div className="text-xs text-gray-500 mb-4">
-                Posições 10 e 11 são dígitos verificadores (calculados automaticamente)
+                Posições 10 e 11 são dígitos verificadores, calculados automaticamente a partir dos 9 primeiros — preencha-os pra ver o resultado.
               </div>
             </div>
 
@@ -226,7 +224,6 @@ function App() {
             )}
           </div>
 
-          {/* Validador de CPF */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
               <Check className="mr-2 text-green-600" />
@@ -249,7 +246,7 @@ function App() {
 
             {isValid !== null && (
               <div className={`p-4 rounded-lg flex items-center ${
-                isValid 
+                isValid
                   ? 'bg-green-100 border border-green-200 text-green-800'
                   : 'bg-red-100 border border-red-200 text-red-800'
               }`}>
