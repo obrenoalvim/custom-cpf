@@ -6,6 +6,8 @@ English | [Português](README.pt.md)
 
 Generates and validates Brazilian CPF numbers, right in your browser. Pin any digits you care about and it fills the rest randomly, computing valid check digits automatically — handy for testing forms and systems that require a CPF without using a real one.
 
+**Live demo:** [custom-cpf.vercel.app](https://custom-cpf.vercel.app)
+
 ## Features
 
 - **CPF generator**: fill in only the digits you want fixed, leave the rest blank for random ones

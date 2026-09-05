@@ -6,6 +6,8 @@
 
 Gera e valida CPFs brasileiros direto no navegador. Fixe os dígitos que quiser e o resto é preenchido aleatoriamente, calculando os dígitos verificadores automaticamente — útil para testar formulários e sistemas que exigem um CPF sem usar um de verdade.
 
+**Demo ao vivo:** [custom-cpf.vercel.app](https://custom-cpf.vercel.app)
+
 ## Funcionalidades
 
 - **Gerador de CPF**: preencha apenas os dígitos que deseja fixar, deixe o resto em branco para gerar aleatoriamente
