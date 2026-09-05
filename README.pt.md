@@ -43,6 +43,7 @@ Abra [http://localhost:5173](http://localhost:5173).
 | `npm run build` | Build de produção |
 | `npm run preview` | Pré-visualiza o build de produção |
 | `npm run lint` | Executa o ESLint |
+| `npm run test` | Roda a suíte de testes (Vitest) |
 
 ## Aviso
 
