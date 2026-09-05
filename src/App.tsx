@@ -48,8 +48,9 @@ function App() {
     } else if (blankIndexes.length <= 6) {
       const candidate = [...base];
       const total = 10 ** blankIndexes.length;
-      for (let n = 0; n < total && !found; n++) {
-        let rem = n;
+      const start = Math.floor(Math.random() * total);
+      for (let k = 0; k < total && !found; k++) {
+        let rem = (start + k) % total;
         for (const idx of blankIndexes) {
           candidate[idx] = (rem % 10).toString();
           rem = Math.floor(rem / 10);
