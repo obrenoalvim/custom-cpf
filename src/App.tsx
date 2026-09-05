@@ -15,22 +15,61 @@ function App() {
   const digitInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const generateCPF = () => {
-    const digits = Array(9).fill('');
-
+    const base = Array(9).fill('');
+    const blankIndexes: number[] = [];
     for (let i = 0; i < 9; i++) {
-      digits[i] = cpfDigits[i] || Math.floor(Math.random() * 10).toString();
+      if (cpfDigits[i]) {
+        base[i] = cpfDigits[i];
+      } else {
+        blankIndexes.push(i);
+      }
+    }
+    const targetDigit1 = cpfDigits[9] ? parseInt(cpfDigits[9]) : null;
+    const targetDigit2 = cpfDigits[10] ? parseInt(cpfDigits[10]) : null;
+
+    const tryCandidate = (candidateBase: string[]): string[] | null => {
+      const [digit1, digit2] = calculateCheckDigits(candidateBase);
+      if (targetDigit1 !== null && digit1 !== targetDigit1) return null;
+      if (targetDigit2 !== null && digit2 !== targetDigit2) return null;
+      const full = [...candidateBase, digit1.toString(), digit2.toString()];
+      return isRepeatedDigits(full) ? null : full;
+    };
+
+    let found: string[] | null = null;
+
+    if (blankIndexes.length === 0) {
+      found = tryCandidate(base);
+    } else if (targetDigit1 === null && targetDigit2 === null) {
+      const candidate = [...base];
+      for (let attempt = 0; attempt < 20 && !found; attempt++) {
+        for (const idx of blankIndexes) candidate[idx] = Math.floor(Math.random() * 10).toString();
+        found = tryCandidate(candidate);
+      }
+    } else if (blankIndexes.length <= 6) {
+      const candidate = [...base];
+      const total = 10 ** blankIndexes.length;
+      for (let n = 0; n < total && !found; n++) {
+        let rem = n;
+        for (const idx of blankIndexes) {
+          candidate[idx] = (rem % 10).toString();
+          rem = Math.floor(rem / 10);
+        }
+        found = tryCandidate(candidate);
+      }
+    } else {
+      const candidate = [...base];
+      for (let attempt = 0; attempt < 200000 && !found; attempt++) {
+        for (const idx of blankIndexes) candidate[idx] = Math.floor(Math.random() * 10).toString();
+        found = tryCandidate(candidate);
+      }
     }
 
-    const [digit1, digit2] = calculateCheckDigits(digits);
-    const fullDigits = [...digits, digit1.toString(), digit2.toString()];
-
-    if (isRepeatedDigits(fullDigits)) {
-      alert('Essa combinação de dígitos gera um CPF com todos os números iguais, que não é válido. Mude pelo menos um dígito fixado.');
+    if (!found) {
+      alert('Não existe um CPF válido com essa combinação de dígitos. Mude algum valor fixado e tente de novo.');
       return;
     }
 
-    setCpfDigits(Object.fromEntries(fullDigits.map((d, i) => [i, d])));
-    setGeneratedCPF(formatCPF(fullDigits.join('')));
+    setGeneratedCPF(formatCPF(found.join('')));
   };
 
   const generateRandomCPF = () => {
@@ -40,7 +79,6 @@ function App() {
       const [digit1, digit2] = calculateCheckDigits(base);
       digits = [...base, digit1.toString(), digit2.toString()];
     } while (isRepeatedDigits(digits));
-    setCpfDigits(Object.fromEntries(digits.map((d, i) => [i, d])));
     setGeneratedCPF(formatCPF(digits.join('')));
   };
 
@@ -130,7 +168,7 @@ function App() {
                 ))}
               </div>
               <div className="text-xs text-gray-500 mb-4">
-                Posições 10 e 11 são dígitos verificadores: o que estiver neles é ignorado ao gerar, o valor certo é calculado a partir dos 9 primeiros dígitos.
+                Posições 10 e 11 são dígitos verificadores. Se você fixar algum, o gerador procura uma combinação para os outros dígitos que resulte exatamente nesse valor.
               </div>
             </div>
 
