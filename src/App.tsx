@@ -29,17 +29,18 @@ function App() {
       return;
     }
 
+    setCpfDigits(Object.fromEntries(fullDigits.map((d, i) => [i, d])));
     setGeneratedCPF(formatCPF(fullDigits.join('')));
   };
 
   const generateRandomCPF = () => {
-    setCpfDigits({});
     let digits: string[];
     do {
       const base = Array(9).fill('').map(() => Math.floor(Math.random() * 10).toString());
       const [digit1, digit2] = calculateCheckDigits(base);
       digits = [...base, digit1.toString(), digit2.toString()];
     } while (isRepeatedDigits(digits));
+    setCpfDigits(Object.fromEntries(digits.map((d, i) => [i, d])));
     setGeneratedCPF(formatCPF(digits.join('')));
   };
 
@@ -60,7 +61,7 @@ function App() {
         ...prev,
         [index]: value
       }));
-      if (value !== '' && index < 8) {
+      if (value !== '' && index < 10) {
         digitInputRefs.current[index + 1]?.focus();
       }
     }
@@ -71,10 +72,6 @@ function App() {
       digitInputRefs.current[index - 1]?.focus();
     }
   };
-
-  const baseDigits = Array.from({ length: 9 }, (_, i) => cpfDigits[i] || '');
-  const baseComplete = baseDigits.every(d => d !== '');
-  const checkDigitsPreview = baseComplete ? calculateCheckDigits(baseDigits) : null;
 
   useEffect(() => {
     const cleanCPF = validationCPF.replace(/\D/g, '');
@@ -116,19 +113,11 @@ function App() {
                       type="text"
                       inputMode="numeric"
                       maxLength={1}
-                      readOnly={i >= 9}
-                      tabIndex={i >= 9 ? -1 : undefined}
-                      value={
-                        i >= 9
-                          ? (checkDigitsPreview ? checkDigitsPreview[i - 9].toString() : '')
-                          : (cpfDigits[i] || '')
-                      }
+                      value={cpfDigits[i] || ''}
                       onChange={(e) => updateDigit(i, e.target.value)}
                       onKeyDown={(e) => handleDigitKeyDown(i, e)}
-                      aria-label={i >= 9 ? `Dígito verificador ${i + 1} do CPF, calculado automaticamente` : `Dígito ${i + 1} do CPF`}
-                      className={`w-full h-12 text-center text-lg font-mono border-2 rounded-lg focus:border-blue-500 focus:outline-none transition-colors ${
-                        i >= 9 ? 'bg-gray-100 border-gray-200 text-gray-500' : 'border-gray-300'
-                      }`}
+                      aria-label={i >= 9 ? `Dígito verificador ${i + 1} do CPF` : `Dígito ${i + 1} do CPF`}
+                      className="w-full h-12 text-center text-lg font-mono border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
                       placeholder="•"
                     />
                     <div className="text-xs text-gray-500 mt-1">
@@ -138,7 +127,7 @@ function App() {
                 ))}
               </div>
               <div className="text-xs text-gray-500 mb-4">
-                Posições 10 e 11 são dígitos verificadores, calculados automaticamente a partir dos 9 primeiros — preencha-os pra ver o resultado.
+                Posições 10 e 11 são dígitos verificadores: o que estiver neles é ignorado ao gerar, o valor certo é calculado a partir dos 9 primeiros dígitos.
               </div>
             </div>
 
