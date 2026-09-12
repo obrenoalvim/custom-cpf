@@ -16,7 +16,7 @@ npm run dev
 1. Fork the repository
 2. Create a branch: `git checkout -b feat/your-feature`
 3. Make your changes
-4. Ensure the build passes: `npm run build`
+4. Ensure lint, tests, and the build pass: `npm run lint && npm run test && npm run build`
 5. Open a Pull Request
 
 ## Guidelines
